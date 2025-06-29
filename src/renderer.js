@@ -37,6 +37,14 @@ class MemoApp {
     this.fileDropZone = document.getElementById('fileDropZone');
     this.attachedFiles = document.getElementById('attachedFiles');
     this.attachedFilesList = [];
+
+    // Search elements (with null check)
+    this.searchInput = document.getElementById('searchInput');
+    this.clearSearchBtn = document.getElementById('clearSearchBtn');
+    this.searchResultsCount = document.getElementById('searchResultsCount');
+    this.currentSearchTerm = '';
+    this.allMemos = [];
+    this.filteredMemos = [];
   }
 
   setupEventListeners() {
@@ -87,6 +95,9 @@ class MemoApp {
 
     // File attachment event listeners
     this.setupFileEventListeners();
+
+    // Search event listeners
+    this.setupSearchEventListeners();
   }
 
   setupFileEventListeners() {
@@ -117,6 +128,171 @@ class MemoApp {
       this.fileDropZone.classList.remove('drag-over');
       this.handleFileSelect(e.dataTransfer.files);
     });
+  }
+
+  setupSearchEventListeners() {
+    // Null check for search elements
+    if (!this.searchInput || !this.clearSearchBtn || !this.searchResultsCount) {
+      console.log('Search elements not found:', {
+        searchInput: this.searchInput,
+        clearSearchBtn: this.clearSearchBtn,
+        searchResultsCount: this.searchResultsCount
+      });
+      return;
+    }
+
+    console.log('Setting up search event listeners');
+
+    // インクリメンタルサーチ
+    this.searchInput.addEventListener('input', (e) => {
+      console.log('Search input changed:', e.target.value);
+      this.handleSearch(e.target.value);
+    });
+
+    // 検索クリアボタン
+    this.clearSearchBtn.addEventListener('click', () => {
+      console.log('Clear search clicked');
+      this.clearSearch();
+    });
+
+    // Escキーで検索クリア
+    this.searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        console.log('Escape key pressed');
+        this.clearSearch();
+      }
+    });
+  }
+
+  handleSearch(searchTerm) {
+    console.log('handleSearch called with:', searchTerm);
+    this.currentSearchTerm = searchTerm.trim();
+    
+    // クリアボタンの表示/非表示
+    if (this.currentSearchTerm) {
+      this.clearSearchBtn.classList.add('visible');
+    } else {
+      this.clearSearchBtn.classList.remove('visible');
+    }
+
+    // 検索実行
+    this.performSearch();
+  }
+
+  performSearch() {
+    console.log('performSearch called');
+    this.allMemos = this.getAllMemos();
+    console.log('All memos:', this.allMemos.length);
+    
+    if (!this.currentSearchTerm) {
+      // 検索語句がない場合は全てのメモを表示
+      this.filteredMemos = this.allMemos;
+      this.updateSearchResultsCount(this.allMemos.length, this.allMemos.length);
+    } else {
+      // 検索語句でフィルタリング
+      this.filteredMemos = this.allMemos.filter(memo => {
+        return memo.content.toLowerCase().includes(this.currentSearchTerm.toLowerCase());
+      });
+      console.log('Filtered memos:', this.filteredMemos.length);
+      this.updateSearchResultsCount(this.filteredMemos.length, this.allMemos.length);
+    }
+
+    // 検索結果を表示
+    this.renderFilteredMemos();
+  }
+
+  updateSearchResultsCount(filtered, total) {
+    console.log('updateSearchResultsCount called:', { filtered, total, searchTerm: this.currentSearchTerm });
+    if (!this.searchResultsCount) {
+      console.log('searchResultsCount element not found');
+      return;
+    }
+    
+    if (!this.currentSearchTerm) {
+      this.searchResultsCount.textContent = '';
+    } else if (filtered === 0) {
+      this.searchResultsCount.textContent = `"${this.currentSearchTerm}" に一致するメモが見つかりません`;
+    } else {
+      this.searchResultsCount.textContent = `${total}件中 ${filtered}件が一致`;
+    }
+  }
+
+  highlightSearchTerm(text, searchTerm) {
+    if (!searchTerm) return text;
+    
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
+  }
+
+  renderFilteredMemos() {
+    console.log('renderFilteredMemos called');
+    if (!this.memoListContainer) {
+      console.log('memoListContainer element not found');
+      return;
+    }
+    
+    this.memoListContainer.innerHTML = '';
+
+    if (this.filteredMemos.length === 0) {
+      if (this.currentSearchTerm) {
+        this.memoListContainer.innerHTML = '<div class="no-results">検索結果が見つかりませんでした</div>';
+      } else {
+        this.memoListContainer.innerHTML = '<div class="no-results">保存されたメモがありません</div>';
+      }
+      return;
+    }
+
+    this.filteredMemos.forEach(memo => {
+      const memoItem = document.createElement('div');
+      memoItem.className = 'memo-item';
+      
+      // 検索結果の場合はクラスを追加
+      if (this.currentSearchTerm) {
+        memoItem.classList.add('search-result');
+      }
+      
+      const preview = memo.content.length > 100 ? memo.content.substring(0, 100) + '...' : memo.content;
+      const highlightedPreview = this.highlightSearchTerm(preview, this.currentSearchTerm);
+      
+      const createdDate = new Date(memo.createdAt).toLocaleDateString('ja-JP');
+      const updatedDate = new Date(memo.updatedAt).toLocaleDateString('ja-JP');
+      
+      memoItem.innerHTML = `
+        <div class="memo-item-header">
+          <div class="memo-preview" style="flex: 1; margin-right: 10px;">${highlightedPreview}</div>
+          <div class="memo-actions">
+            <button class="btn btn-danger delete-memo-btn" data-memo-id="${memo.id}">🗑️</button>
+          </div>
+        </div>
+        <div class="memo-meta">
+          <span>作成: ${createdDate}</span>
+          <span>更新: ${updatedDate}</span>
+        </div>
+      `;
+      
+      const deleteBtn = memoItem.querySelector('.delete-memo-btn');
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showDeleteConfirmation(memo.id);
+      });
+      
+      memoItem.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('delete-memo-btn')) {
+          this.loadMemo(memo.id);
+          this.showMemoEditor();
+        }
+      });
+      
+      this.memoListContainer.appendChild(memoItem);
+    });
+  }
+
+  clearSearch() {
+    this.searchInput.value = '';
+    this.currentSearchTerm = '';
+    this.clearSearchBtn.classList.remove('visible');
+    this.performSearch();
+    this.searchInput.focus();
   }
 
   handleFileSelect(files) {
@@ -385,50 +561,8 @@ class MemoApp {
   }
 
   renderMemoList() {
-    const memos = this.getAllMemos();
-    this.memoListContainer.innerHTML = '';
-
-    if (memos.length === 0) {
-      this.memoListContainer.innerHTML = '<div style="text-align: center; color: #666; padding: 40px;">保存されたメモがありません</div>';
-      return;
-    }
-
-    memos.forEach(memo => {
-      const memoItem = document.createElement('div');
-      memoItem.className = 'memo-item';
-      
-      const preview = memo.content.length > 100 ? memo.content.substring(0, 100) + '...' : memo.content;
-      const createdDate = new Date(memo.createdAt).toLocaleDateString('ja-JP');
-      const updatedDate = new Date(memo.updatedAt).toLocaleDateString('ja-JP');
-      
-      memoItem.innerHTML = `
-        <div class="memo-item-header">
-          <div class="memo-preview" style="flex: 1; margin-right: 10px;">${preview}</div>
-          <div class="memo-actions">
-            <button class="btn btn-danger delete-memo-btn" data-memo-id="${memo.id}">🗑️</button>
-          </div>
-        </div>
-        <div class="memo-meta">
-          <span>作成: ${createdDate}</span>
-          <span>更新: ${updatedDate}</span>
-        </div>
-      `;
-      
-      const deleteBtn = memoItem.querySelector('.delete-memo-btn');
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.showDeleteConfirmation(memo.id);
-      });
-      
-      memoItem.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('delete-memo-btn')) {
-          this.loadMemo(memo.id);
-          this.showMemoEditor();
-        }
-      });
-      
-      this.memoListContainer.appendChild(memoItem);
-    });
+    // 検索機能を使用してメモリストを表示
+    this.performSearch();
   }
 
   generateMemoId() {

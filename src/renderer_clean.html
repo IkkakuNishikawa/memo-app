@@ -368,6 +368,85 @@
     .memo-editor.hidden {
       display: none;
     }
+
+    /* Search Box Styles */
+    .search-container {
+      padding: 15px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #E5E5E7;
+    }
+
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 12px 40px 12px 16px;
+      border: 1px solid #D1D1D6;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: white;
+    }
+
+    .search-input:focus {
+      border-color: #007AFF;
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 8px;
+      background: none;
+      border: none;
+      color: #666;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+      display: none;
+    }
+
+    .search-clear:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .search-clear.visible {
+      display: block;
+    }
+
+    .search-results-count {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #666;
+      padding: 0 4px;
+    }
+
+    /* Highlight styles for search results */
+    .search-highlight {
+      background-color: #fff3cd;
+      color: #856404;
+      font-weight: bold;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+
+    .memo-item.search-result {
+      border-left: 4px solid #007AFF;
+    }
+
+    .no-results {
+      text-align: center;
+      color: #666;
+      padding: 40px 20px;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
@@ -417,6 +496,15 @@
       <div class="toolbar">
         <h2 style="margin: 0; color: #333;">メモ一覧</h2>
         <button id="backBtn" class="btn btn-secondary">← 戻る</button>
+      </div>
+      
+      <!-- Search Box -->
+      <div class="search-container">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="メモを検索..." class="search-input">
+          <button id="clearSearchBtn" class="search-clear">×</button>
+        </div>
+        <div class="search-results-count" id="searchResultsCount"></div>
       </div>
       
       <div id="memoListContainer" style="flex: 1; overflow-y: auto;">
