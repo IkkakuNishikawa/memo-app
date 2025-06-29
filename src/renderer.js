@@ -14,7 +14,6 @@ class MemoApp {
 
   initializeElements() {
     this.voiceBtn = document.getElementById('voiceBtn');
-    this.clearBtn = document.getElementById('clearBtn');
     this.listBtn = document.getElementById('listBtn');
     this.backBtn = document.getElementById('backBtn');
     this.newMemoBtn = document.getElementById('newMemoBtn');
@@ -50,11 +49,6 @@ class MemoApp {
   setupEventListeners() {
     this.voiceBtn.addEventListener('click', () => {
       this.toggleVoiceRecording();
-    });
-
-    this.clearBtn.addEventListener('click', () => {
-      this.memoText.value = '';
-      this.updateStatus('クリアしました');
     });
 
     this.listBtn.addEventListener('click', () => {
